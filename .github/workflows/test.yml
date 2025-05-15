@@ -1,0 +1,79 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: customer_persona_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '24'
+        cache: 'npm'
+        cache-dependency-path: customer-persona-api/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./customer-persona-api
+    
+    - name: Run tests
+      run: npm run test:cov
+      working-directory: ./customer-persona-api
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/customer_persona_test
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-coverage
+        path: customer-persona-api/coverage
+  
+  test-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '24'
+        cache: 'npm'
+        cache-dependency-path: customer-persona-app/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./customer-persona-app
+    
+    - name: Run tests
+      run: npm test -- --coverage
+      working-directory: ./customer-persona-app
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-coverage
+        path: customer-persona-app/coverage

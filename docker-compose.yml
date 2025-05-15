@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: customer-persona-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: customer_persona
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Backend API (NestJS)
+  api:
+    build:
+      context: ./customer-persona-api
+      dockerfile: Dockerfile
+      target: development
+    container_name: customer-persona-api
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/customer_persona
+      - ALLOWED_ORIGINS=http://localhost:3000,http://frontend:3000
+      # Add your OpenAI API key here or use a .env file
+      # - OPENAI_API_KEY=your_api_key_here
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./customer-persona-api:/app
+      - /app/node_modules
+    command: npm run start:dev
+    networks:
+      - app-network
+
+  # Frontend App (Next.js)
+  frontend:
+    build:
+      context: ./customer-persona-app
+      dockerfile: Dockerfile
+      target: development
+    container_name: customer-persona-app
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://api:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./customer-persona-app:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
