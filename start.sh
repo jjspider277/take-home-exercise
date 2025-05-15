@@ -11,7 +11,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo "Docker Compose is not installed. Please install Docker Compose and try again."
     exit 1
 fi
@@ -29,21 +29,21 @@ fi
 
 # Build and start the containers
 echo "Building and starting containers..."
-docker-compose up --build -d
+docker compose up --build -d
 
 # Wait for services to be ready
 echo "Waiting for services to start..."
 sleep 10
 
 # Check if services are running
-if docker-compose ps | grep -q "customer-persona-api"; then
+if docker compose ps | grep -q "customer-persona-api"; then
     echo "API is running at: http://localhost:3001"
     echo "API Documentation: http://localhost:3001/api"
 else
     echo "Error: API failed to start."
 fi
 
-if docker-compose ps | grep -q "customer-persona-app"; then
+if docker compose ps | grep -q "customer-persona-app"; then
     echo "Frontend is running at: http://localhost:3000"
 else
     echo "Error: Frontend failed to start."
